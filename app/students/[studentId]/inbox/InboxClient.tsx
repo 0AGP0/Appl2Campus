@@ -737,7 +737,7 @@ export function InboxClient({
                             Ekler
                           </p>
                           <ul className="flex flex-wrap gap-2">
-                            {threadDetail.message.attachments.map((a) => (
+                            {(threadDetail.message.attachments ?? []).map((a) => (
                               <li key={a.attachmentId}>
                                 <a
                                   href={`/api/students/${studentId}/emails/${selectedId}/attachments/${a.attachmentId}?filename=${encodeURIComponent(a.filename)}`}

@@ -150,7 +150,7 @@ export function EmailDetailClient({
                       Ekler
                     </p>
                     <ul className="flex flex-wrap gap-2">
-                      {message.attachments!.map((a) => (
+                      {(message.attachments ?? []).map((a) => (
                         <li key={a.attachmentId}>
                           <a
                             href={`/api/students/${studentId}/emails/${message.gmailMessageId}/attachments/${a.attachmentId}?filename=${encodeURIComponent(a.filename)}`}

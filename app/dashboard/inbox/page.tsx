@@ -39,7 +39,7 @@ export default async function StudentInboxPage() {
         gmailAddress={student.gmailAddress ?? ""}
         connectionStatus={student.gmailConnection?.status ?? "disconnected"}
         initialLabel="INBOX"
-        user={{ name: session.user.name, email: session.user.email }}
+        user={{ name: session.user.name ?? null, email: session.user.email ?? null }}
         inboxBasePath="/dashboard"
         initialFolders={folders}
         initialBadges={badges}

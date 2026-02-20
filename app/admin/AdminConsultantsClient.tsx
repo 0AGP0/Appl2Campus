@@ -54,6 +54,7 @@ export function AdminConsultantsClient() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [addingDemoConsultant, setAddingDemoConsultant] = useState(false);
 
   function fetchConsultants() {
     fetch("/api/users")
@@ -65,6 +66,23 @@ export function AdminConsultantsClient() {
   useEffect(() => {
     fetchConsultants();
   }, []);
+
+  async function addDemoConsultant() {
+    setAddingDemoConsultant(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/ensure-demo-consultant", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        fetchConsultants();
+      } else {
+        setError(data.error ?? "Demo danışman eklenemedi");
+      }
+    } catch {
+      setError("Bağlantı hatası");
+    }
+    setAddingDemoConsultant(false);
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return consultants;
@@ -217,6 +235,25 @@ export function AdminConsultantsClient() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3 space-y-6">
+          {/* Liste boşsa demo danışman ekle */}
+          {consultants.length === 0 && (
+            <div className="panel-card p-6 border-2 border-dashed border-primary/30 bg-primary/5 dark:bg-primary/10 rounded-2xl">
+              <p className="text-slate-700 dark:text-slate-300 font-medium mb-2">Demo danışman yok</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                Tek tıkla demo danışman (sarah@educonsult.local, şifre: password123) eklenir; listede hemen görünür.
+              </p>
+              <button
+                type="button"
+                onClick={addDemoConsultant}
+                disabled={addingDemoConsultant}
+                className="btn-primary-panel disabled:opacity-50"
+              >
+                {addingDemoConsultant ? "Ekleniyor…" : "Demo danışman ekle"}
+              </button>
+              {error && <p className="text-sm text-red-600 dark:text-red-400 mt-2">{error}</p>}
+            </div>
+          )}
+
           {/* Arama */}
           <div className="panel-card p-4">
             <div className="relative">

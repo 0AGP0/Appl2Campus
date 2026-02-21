@@ -34,20 +34,20 @@ export async function GET(
 
     return NextResponse.json({
       values: values
-        .filter((v): v is ValueRow => v.crmField != null)
-        .map((v: ValueRow) => ({
-          fieldSlug: v.crmField.slug,
-          fieldLabel: v.crmField.label,
-          type: v.crmField.type,
+        .filter((v) => v.crmField != null)
+        .map((v) => ({
+          fieldSlug: v.crmField!.slug,
+          fieldLabel: v.crmField!.label,
+          type: v.crmField!.type,
           value: v.value,
           updatedAt: v.updatedAt,
         })),
       documents: documents
-        .filter((d): d is DocRow => d.crmField != null)
-        .map((d: DocRow) => ({
+        .filter((d) => d.crmField != null)
+        .map((d) => ({
           id: d.id,
-          fieldSlug: d.crmField.slug,
-          fieldLabel: d.crmField.label,
+          fieldSlug: d.crmField!.slug,
+          fieldLabel: d.crmField!.label,
           fileName: d.fileName,
           fileSize: d.fileSize,
           uploadedAt: d.uploadedAt,

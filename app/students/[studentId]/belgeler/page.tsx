@@ -1,7 +1,7 @@
 import { getServerSession, authOptions } from "@/lib/auth";
 import { canAccessStudent } from "@/lib/rbac";
 import { notFound } from "next/navigation";
-import { OperationDocumentsSection } from "../OperationDocumentsSection";
+import { StudentBelgelerFullClient } from "../StudentBelgelerFullClient";
 
 export default async function StudentBelgelerPage({
   params,
@@ -18,7 +18,7 @@ export default async function StudentBelgelerPage({
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-      <OperationDocumentsSection studentId={studentId} />
+      <StudentBelgelerFullClient studentId={studentId} />
     </div>
   );
 }

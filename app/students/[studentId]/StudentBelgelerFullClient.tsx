@@ -5,41 +5,45 @@ import { getDocumentStatusLabel, getDocumentStatusBadgeClass } from "@/lib/docum
 
 type Field = { id: string; slug: string; label: string; type: string; allowMultiple: boolean };
 type Section = { id: string; slug: string; name: string; fields: Field[] };
-type DocItem = { id: string; fieldSlug: string; categorySlug?: string; fileName: string; uploadedAt: string; version?: number; status?: string };
+type CrmDoc = { id: string; fieldSlug: string; fileName: string; uploadedAt: string; version?: number; status?: string };
 type Category = { id: string; slug: string; name: string; type: string };
 type DocByCat = { id: string; categorySlug: string; categoryName: string; categoryType: string; fileName: string; version: number; status: string; uploadedAt: string };
 
-export function DokumanlarClient({ studentId }: { studentId: string }) {
+export function StudentBelgelerFullClient({ studentId }: { studentId: string }) {
   const [sections, setSections] = useState<Section[]>([]);
-  const [documents, setDocuments] = useState<DocItem[]>([]);
+  const [crmDocuments, setCrmDocuments] = useState<CrmDoc[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [documentsByCat, setDocumentsByCat] = useState<DocByCat[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [selectedOpSlug, setSelectedOpSlug] = useState("");
   const [error, setError] = useState("");
-  const [activeGroup, setActiveGroup] = useState<"kisisel" | "operasyon" | "evrak">("kisisel");
+  const [activeGroup, setActiveGroup] = useState<"kisisel" | "operasyon" | "ogrenci">("kisisel");
 
   const load = useCallback(async () => {
-    const [formRes, dataRes, catRes, docCatRes] = await Promise.all([
+    const [formRes, crmRes, catRes, docCatRes] = await Promise.all([
       fetch("/api/crm/form"),
       fetch(`/api/students/${studentId}/crm`),
       fetch("/api/document-categories"),
       fetch(`/api/students/${studentId}/documents-by-category`),
     ]);
-    if (!formRes.ok || !dataRes.ok) {
+    if (!formRes.ok || !crmRes.ok) {
       setError("Veriler yüklenemedi");
       setLoading(false);
       return;
     }
     const formJson = await formRes.json();
-    const dataJson = await dataRes.json();
+    const crmJson = await crmRes.json();
     const all = (formJson.sections ?? []) as Section[];
     const docSection = all.find((s: Section) => s.slug === "documents");
     setSections(docSection ? [docSection] : []);
-    setDocuments(dataJson.documents ?? []);
+    setCrmDocuments(crmJson.documents ?? []);
     if (catRes.ok) {
       const catJson = await catRes.json();
-      setCategories(catJson.categories ?? []);
+      const list = catJson.categories ?? [];
+      setCategories(list);
+      const opCats = list.filter((c: Category) => c.type === "OPERATION_UPLOADED");
+      if (opCats.length > 0) setSelectedOpSlug((prev) => prev || opCats[0].slug);
     }
     if (docCatRes.ok) {
       const docCatJson = await docCatRes.json();
@@ -52,28 +56,12 @@ export function DokumanlarClient({ studentId }: { studentId: string }) {
     load();
   }, [load]);
 
-  async function uploadCrm(fieldSlug: string, file: File) {
-    setUploading(fieldSlug);
+  async function uploadOperation(file: File) {
+    if (!selectedOpSlug) return;
+    setUploading("op");
     setError("");
     const form = new FormData();
-    form.append("fieldSlug", fieldSlug);
-    form.append("file", file);
-    const res = await fetch(`/api/students/${studentId}/crm/documents`, { method: "POST", body: form });
-    setUploading(null);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Yükleme başarısız");
-      return;
-    }
-    const doc = await res.json();
-    setDocuments((prev) => [...prev, { id: doc.id, fieldSlug, fileName: doc.fileName, uploadedAt: doc.uploadedAt, version: doc.version, status: doc.status }]);
-  }
-
-  async function uploadByCategory(categorySlug: string, file: File) {
-    setUploading(categorySlug);
-    setError("");
-    const form = new FormData();
-    form.append("categorySlug", categorySlug);
+    form.append("categorySlug", selectedOpSlug);
     form.append("file", file);
     const res = await fetch(`/api/students/${studentId}/documents-by-category/upload`, { method: "POST", body: form });
     setUploading(null);
@@ -83,7 +71,7 @@ export function DokumanlarClient({ studentId }: { studentId: string }) {
       return;
     }
     const doc = await res.json();
-    setDocumentsByCat((prev) => [...prev, { id: doc.id, categorySlug: doc.categorySlug, categoryName: doc.categoryName, categoryType: doc.categoryType ?? "STUDENT_UPLOADED", fileName: doc.fileName, version: doc.version, status: doc.status, uploadedAt: doc.uploadedAt }]);
+    setDocumentsByCat((prev) => [...prev, { id: doc.id, categorySlug: doc.categorySlug, categoryName: doc.categoryName, categoryType: "OPERATION_UPLOADED", fileName: doc.fileName, version: doc.version, status: doc.status, uploadedAt: doc.uploadedAt }]);
   }
 
   if (loading) {
@@ -107,11 +95,11 @@ export function DokumanlarClient({ studentId }: { studentId: string }) {
   }, {} as Record<string, DocByCat[]>);
 
   const revizeDocs = [
-    ...documents.filter((d) => d.status === "REVISION_REQUESTED"),
-    ...documentsByCat.filter((d) => d.status === "REVISION_REQUESTED").map((d) => ({ ...d, fieldSlug: "" })),
+    ...crmDocuments.filter((d) => d.status === "REVISION_REQUESTED"),
+    ...documentsByCat.filter((d) => d.status === "REVISION_REQUESTED"),
   ];
 
-  const NavItem = ({ id, icon, label }: { id: typeof activeGroup; icon: string; label: string }) => (
+  const NavItem = ({ id, icon, label, count }: { id: typeof activeGroup; icon: string; label: string; count?: number }) => (
     <button
       type="button"
       onClick={() => setActiveGroup(id)}
@@ -123,6 +111,11 @@ export function DokumanlarClient({ studentId }: { studentId: string }) {
     >
       <span className="material-icons-outlined text-xl">{icon}</span>
       <span className="font-medium text-sm">{label}</span>
+      {count !== undefined && count > 0 && (
+        <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+          {count}
+        </span>
+      )}
     </button>
   );
 
@@ -155,7 +148,7 @@ export function DokumanlarClient({ studentId }: { studentId: string }) {
         <nav className="sticky top-4 space-y-1 p-2 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200/80 dark:border-slate-700/80 shadow-sm">
           <NavItem id="kisisel" icon="folder_open" label="Kişisel Belgeler" />
           <NavItem id="operasyon" icon="business_center" label="Operasyon Belgeleri" />
-          <NavItem id="evrak" icon="upload_file" label="Evrak Yükle" />
+          <NavItem id="ogrenci" icon="upload_file" label="Öğrenci Evrak" />
         </nav>
       </aside>
 
@@ -175,7 +168,7 @@ export function DokumanlarClient({ studentId }: { studentId: string }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="font-semibold text-amber-900 dark:text-amber-100">{revizeDocs.length} belge revize bekliyor</p>
-              <p className="text-sm text-amber-700 dark:text-amber-300 mt-0.5">Bu belgeleri güncelleyip tekrar yükleyin</p>
+              <p className="text-sm text-amber-700 dark:text-amber-300 mt-0.5">Öğrencinin bu belgeleri güncellemesi gerekiyor</p>
             </div>
             <details className="shrink-0">
               <summary className="text-sm font-medium text-amber-700 dark:text-amber-300 cursor-pointer hover:underline">Listele</summary>
@@ -183,7 +176,7 @@ export function DokumanlarClient({ studentId }: { studentId: string }) {
                 {revizeDocs.map((d) => (
                   <li key={d.id}>
                     <a
-                      href={d.categorySlug ? `/api/students/${studentId}/documents-by-category/${d.id}` : `/api/students/${studentId}/documents/${d.id}`}
+                      href={"categorySlug" in d ? `/api/students/${studentId}/documents-by-category/${d.id}` : `/api/students/${studentId}/documents/${d.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-amber-800 dark:text-amber-200 hover:underline truncate block"
@@ -207,22 +200,17 @@ export function DokumanlarClient({ studentId }: { studentId: string }) {
               ) : (
                 <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
                   {fileFields.map((field) => {
-                    const docs = documents.filter((d) => d.fieldSlug === field.slug);
-                    const isUploading = uploading === field.slug;
+                    const docs = crmDocuments.filter((d) => d.fieldSlug === field.slug);
                     return (
                       <div key={field.id} className="p-4">
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">{field.label}</h3>
-                          <input type="file" accept=".pdf,.doc,.docx,image/*" className="hidden" id={`file-${field.slug}`} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCrm(field.slug, f); e.target.value = ""; }} disabled={!!isUploading} />
-                          <label htmlFor={`file-${field.slug}`} className="text-xs px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-medium hover:bg-primary/20 cursor-pointer shrink-0 transition-colors">
-                            {isUploading ? "Yükleniyor..." : "Yükle"}
-                          </label>
-                        </div>
+                        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{field.label}</h3>
                         {docs.length === 0 ? (
                           <p className="text-xs text-slate-500 italic">Yüklenmedi</p>
                         ) : (
                           <div className="space-y-1">
-                            {docs.map((d) => <DocItem key={d.id} d={{ ...d, version: d.version ?? 1, status: d.status ?? "UPLOADED" }} href={`/api/students/${studentId}/documents/${d.id}`} />)}
+                            {docs.map((d) => (
+                              <DocItem key={d.id} d={{ ...d, version: d.version ?? 1, status: d.status ?? "UPLOADED" }} href={`/api/students/${studentId}/documents/${d.id}`} />
+                            ))}
                           </div>
                         )}
                       </div>
@@ -237,39 +225,56 @@ export function DokumanlarClient({ studentId }: { studentId: string }) {
         {/* Operasyon Belgeleri */}
         {activeGroup === "operasyon" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Operasyon Belgeleri</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Operasyon ve danışman tarafından yüklenen belgeler</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Operasyon Belgeleri</h2>
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedOpSlug || operationCategories[0]?.slug || ""}
+                  onChange={(e) => setSelectedOpSlug(e.target.value)}
+                  className="rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm py-2.5 px-4 min-w-[200px] focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                >
+                  {operationCategories.map((c) => (
+                    <option key={c.id} value={c.slug}>{c.name}</option>
+                  ))}
+                </select>
+                <input type="file" accept=".pdf,.doc,.docx,image/*" className="hidden" id="op-upload" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadOperation(f); e.target.value = ""; }} disabled={!!uploading} />
+                <label htmlFor="op-upload" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 cursor-pointer disabled:opacity-50 transition-colors shadow-md shadow-primary/20">
+                  <span className="material-icons-outlined text-lg">upload</span>
+                  {uploading ? "Yükleniyor" : "Yükle"}
+                </label>
+              </div>
+            </div>
             <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900/50 overflow-hidden shadow-sm">
-              {operationCategories.length === 0 ? (
-                <div className="p-12 text-center text-slate-500 text-sm">Kategori tanımlı değil</div>
-              ) : (
+              {operationCategories.some((c) => (docsByCategorySlug[c.slug] ?? []).length > 0) ? (
                 <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
                   {operationCategories.map((cat) => {
                     const docs = docsByCategorySlug[cat.slug] ?? [];
+                    if (docs.length === 0) return null;
                     return (
                       <div key={cat.id} className="p-4">
                         <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{cat.name}</h3>
-                        {docs.length === 0 ? (
-                          <p className="text-xs text-slate-500 italic">Yüklenmedi</p>
-                        ) : (
-                          <div className="space-y-1">
-                            {docs.map((d) => <DocItem key={d.id} d={d} href={`/api/students/${studentId}/documents-by-category/${d.id}`} />)}
-                          </div>
-                        )}
+                        <div className="space-y-1">
+                          {docs.map((d) => <DocItem key={d.id} d={d} href={`/api/students/${studentId}/documents-by-category/${d.id}`} />)}
+                        </div>
                       </div>
                     );
                   })}
+                </div>
+              ) : (
+                <div className="p-12 text-center">
+                  <span className="material-icons-outlined text-4xl text-slate-300 dark:text-slate-600 mb-3 block">folder_open</span>
+                  <p className="text-slate-500 text-sm">Henüz operasyon belgesi yüklenmedi</p>
+                  <p className="text-xs text-slate-400 mt-1">Yukarıdan kategori seçip dosya yükleyebilirsiniz</p>
                 </div>
               )}
             </div>
           </div>
         )}
 
-        {/* Evrak Yükle */}
-        {activeGroup === "evrak" && (
+        {/* Öğrenci Evrak */}
+        {activeGroup === "ogrenci" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Evrak Yükle</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Aşağıdaki kategorilerden dosya yükleyebilirsiniz</p>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Öğrenci Evrakları</h2>
             <div className="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900/50 overflow-hidden shadow-sm">
               {studentUploadCategories.length === 0 ? (
                 <div className="p-12 text-center text-slate-500 text-sm">Kategori tanımlı değil</div>
@@ -277,16 +282,9 @@ export function DokumanlarClient({ studentId }: { studentId: string }) {
                 <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
                   {studentUploadCategories.map((cat) => {
                     const docs = docsByCategorySlug[cat.slug] ?? [];
-                    const isUploading = uploading === cat.slug;
                     return (
                       <div key={cat.id} className="p-4">
-                        <div className="flex items-center justify-between gap-2 mb-2">
-                          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">{cat.name}</h3>
-                          <input type="file" accept=".pdf,.doc,.docx,image/*" className="hidden" id={`cat-${cat.slug}`} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadByCategory(cat.slug, f); e.target.value = ""; }} disabled={!!isUploading} />
-                          <label htmlFor={`cat-${cat.slug}`} className="text-xs px-3 py-1.5 rounded-lg bg-primary/10 text-primary font-medium hover:bg-primary/20 cursor-pointer shrink-0 transition-colors">
-                            {isUploading ? "Yükleniyor..." : "Yükle"}
-                          </label>
-                        </div>
+                        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{cat.name}</h3>
                         {docs.length === 0 ? (
                           <p className="text-xs text-slate-500 italic">Yüklenmedi</p>
                         ) : (

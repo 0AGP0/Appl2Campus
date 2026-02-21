@@ -1,0 +1,25 @@
+Subject: Re: Verification – Apply2Campus (353277778017) – Supplementary test accounts
+
+Hello,
+
+Thank you for reviewing our previous submission. We would like to supplement it with the complete list of test accounts available in our application. We had omitted the Admin account in the first reply; below is the full set of credentials your team can use to test the OAuth consent flow and app functionality.
+
+Application URL: https://apply2campus.com
+Login page: https://apply2campus.com/login
+
+Complete test accounts (all passwords: password123):
+
+  Role        | Email                      | Password    | After login
+  ------------|----------------------------|-------------|----------------------------------
+  Admin       | admin@educonsult.local     | password123 | Redirected to /admin
+  Consultant  | sarah@educonsult.local     | password123 | Redirected to /panel
+  Student     | alex.johnson@example.com   | password123 | Redirected to /dashboard
+
+For OAuth consent flow testing we recommend using the Student account (alex.johnson@example.com): log in, then on the dashboard click "Gmail ile Bağlan" to reach the Google consent screen. The Admin and Consultant accounts can also start the Gmail connection flow for a student by going to Students, opening a student profile, and using the "Gmail ile Bağlan" link there.
+
+Note: Our app also has Operation roles (e.g. visa, accommodation, university). We do not have seeded test users for those roles; the Admin and Consultant accounts above cover all staff-side OAuth and app testing.
+
+If you need any further information or additional test accounts, please let us know.
+
+Best regards,
+Apply2Campus Team

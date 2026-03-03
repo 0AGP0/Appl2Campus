@@ -13,7 +13,7 @@ Portalda her madde için **Applicable?** sütununda **Yes** veya **No** seçecek
 | 3 | **Yes** | Access control enforced on server only: getServerSession and canAccessStudent on all relevant API routes and pages. No access control decisions on client. |
 | 4 | **Yes** | Sensitive data classified: PII (student/consultant data, emails), credentials (hashed), OAuth tokens (encrypted at rest). |
 | 5 | **Yes** | Protection levels applied: passwords bcrypt hashed; Gmail tokens AES-256-GCM encrypted; PII in DB; HTTPS in production; Cache-Control no-store for sensitive pages. |
-| 6 | **Yes** | Integrity: external scripts use crossorigin=anonymous; SRI used where feasible. No execution of code from untrusted sources; only Google Fonts (trusted CDN). |
+| 6 | **Yes** | No external scripts or styles loaded from CDN or internet. Application does not load or execute code from untrusted sources; only bundled framework and library code. |
 | 7 | **Yes** | We use only our own domain (apply2campus.com). No orphan subdomains or CNAMEs; DNS and hosting under our control. |
 | 8 | **Yes** | Anti-automation: rate limiting on login (per email), registration (per IP), and Gmail sync (per studentId, 1 per 5 min). Limits applied server-side. |
 | 9 | **Yes** | User-uploaded files stored under data/uploads (or UPLOAD_DIR), outside web-accessible root. Permissions and path sanitization (safeBasename) applied. |

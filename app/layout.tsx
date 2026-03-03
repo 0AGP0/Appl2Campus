@@ -15,13 +15,6 @@ export default function RootLayout({
   return (
     <html lang="tr" className="light">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined&display=swap"
-          rel="stylesheet"
-          crossOrigin="anonymous"
-        />
       </head>
       <body className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen antialiased">
         <Providers>{children}</Providers>

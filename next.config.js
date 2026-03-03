@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  powerByHeader: false,
   async headers() {
     const securityHeaders = [
       { key: "X-Frame-Options", value: "DENY" },

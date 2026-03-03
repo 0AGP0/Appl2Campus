@@ -12,7 +12,7 @@ Bu dokümanda TAC Security CASA raporundaki maddeler için yapılacaklar özetle
 
 - **TRACE ve TRACK’i kapatın.** OPTIONS CORS için gerekebilir; sadece TRACE/TRACK’i engelleyin.
 - **Server header’ı gizleyin** (nginx sürümü görünmesin).
-- **X-Powered-By:** Uygulama tarafında `next.config.js` içinde `powerByHeader: false` zaten eklendi. Nginx veya reverse proxy’de de `X-Powered-By`’ı kaldırın/silmeyin (uygulama set etmiyorsa proxy’de eklemeyin).
+- **X-Powered-By:** Nginx’te `proxy_hide_header X-Powered-By;` ile backend’den gelen header’ı istemciye göndermeyin.
 - **Özel hata sayfaları** kullanın (4xx/5xx) böylece varsayılan nginx/Next.js hata sayfaları sızmasın.
 
 **Örnek nginx konfigürasyonu** (site `server` bloğuna eklenebilir):
@@ -28,30 +28,23 @@ if ($request_method ~ ^(TRACE|TRACK)$) {
 
 # İsteğe bağlı: X-Powered-By'ı kaldır (proxy'de backend'den gelen header'ı silmek için)
 proxy_hide_header X-Powered-By;
-# İsteğe bağlı: Server header'ı özelleştir (boş veya generic)
-more_clear_headers Server;
-# veya: add_header Server "Web";  (generic değer)
+# NOT: Server header'ını tamamen kaldırmak için ngx_headers_more gerekir.
+# server_tokens off; sürüm numarasını gizler (Server: nginx kalır).
 ```
+
+**Tam örnek:** `docs/nginx-casa.conf` dosyasına bakın.
 
 ---
 
 ## 2. Sub Resource Integrity (SRI) Eksik (Low) – CWE 345
 
-**Sorun:** `fonts.googleapis.com` üzerinden yüklenen Material Icons linkinde `integrity` attribute yok.
+**Durum – Kapatıldı:** Artık hiçbir script veya stylesheet harici sunucudan (CDN) yüklenmiyor.
 
-**Uygulama tarafı:** `app/layout.tsx` içinde ilgili link’e `crossOrigin="anonymous"` eklendi (SRI kullanılacaksa gerekli).
+- **Material Icons Outlined:** `@fontsource/material-icons-outlined` ile self-host; `app/globals.css` içinde `@import` ile bundle’a dahil.
+- **Lexend:** `@fontsource/lexend` ile self-host; `app/globals.css` içinde latin 300–700 ağırlıkları `@import` ile bundle’a dahil.
+- **layout.tsx:** Google Fonts / harici `<link>` yok; `<head />` boş (fontlar CSS import ile geliyor).
 
-**SRI için iki seçenek:**
-
-- **A) Self-host (önerilen):** Material Icons font dosyasını (woff2) ve CSS’i kendi sunucunuza alın; kendi CSS link’inize `integrity` ve `crossOrigin="anonymous"` ekleyin. Hash’i oluşturmak için:
-  ```bash
-  openssl dgst -sha384 -binary public/fonts/material-icons-outlined.css | openssl base64 -A
-  ```
-  Layout’ta örnek:
-  ```html
-  <link rel="stylesheet" href="/fonts/material-icons-outlined.css" integrity="sha384-..." crossOrigin="anonymous" />
-  ```
-- **B) Google CDN’de kalmak:** Google Fonts, icon CSS için sabit bir SRI hash sunmuyor (içerik user-agent’a göre değişebilir). Bu maddeyi TAC’a “Third-party is Google; vendor does not provide SRI for this resource; we use crossorigin=anonymous” şeklinde açıklayıp kabul edilmesini isteyebilirsiniz.
+Rescan’da sayfada `fonts.googleapis.com` linki görünmemeli; SRI bulgusu kapanır.
 
 ---
 
@@ -65,8 +58,8 @@ more_clear_headers Server;
 
 **Durum:**
 
-- Uygulama: `powerByHeader: false` ile Next.js artık `X-Powered-By` göndermiyor.
-- Sunucu: Nginx tarafında `server_tokens off;` ve isteğe bağlı `proxy_hide_header X-Powered-By;` / `more_clear_headers Server;` ile sürüm bilgisi azaltıldı (yukarıdaki nginx örneği).
+- Uygulama: Next.js varsayılan X-Powered-By’ı kaldırmak için nginx’te `proxy_hide_header X-Powered-By;` kullanın.
+- Sunucu: `server_tokens off;` ve `proxy_hide_header X-Powered-By;` (yukarıdaki nginx örneği ve `docs/nginx-casa.conf`).
 
 ---
 
@@ -111,12 +104,25 @@ Static asset’ler (`/_next/static/...`) için uzun `max-age` kalabilir; sadece 
 | # | Madde                         | Uygulama (Next.js)     | Sunucu (nginx)                    |
 |---|-------------------------------|------------------------|-----------------------------------|
 | 1 | Proxy/server disclosure       | -                      | TRACE/TRACK kapat, server_tokens off, proxy_hide_header |
-| 2 | SRI                           | crossOrigin eklendi    | Self-host veya TAC’a açıklama     |
+| 2 | SRI                           | Tüm fontlar self-host (Lexend + Material Icons) | Harici link yok |
 | 3 | CORP                          | same-origin eklendi    | -                                 |
-| 4 | Server/X-Powered-By           | powerByHeader: false   | server_tokens off, header temizleme |
+| 4 | Server/X-Powered-By           | -                     | server_tokens off, proxy_hide_header X-Powered-By |
 | 5 | HSTS                          | Header eklendi         | -                                 |
 | 6 | Suspicious comments           | -                      | TAC’a false positive bildirimi   |
 | 7 | Modern web app                | -                      | -                                 |
 | 8 | Cache-Control                 | Hassas sayfalar no-store| -                                 |
 
 Deploy sonrası bir sonraki CASA revalidation’da bu maddelerin “resolved” sayılması için gerekirse TAC’a düzeltme kanıtı (ör. ekran görüntüsü veya curl çıktısı) ile birlikte bildirim yapın.
+
+---
+
+## TAC Raporda “Open” Kalan Maddeler – Özet
+
+| # | Madde | Aksiyon |
+|---|--------|--------|
+| **1** Proxy Disclosure | Nginx: `server_tokens off;`, TRACE/TRACK reddi, `proxy_hide_header X-Powered-By;` uygula. `docs/nginx-casa.conf` kullan. |
+| **2** SRI Missing | **Uygulama tarafında kapatıldı.** Lexend + Material Icons self-host; harici font linki yok. Yeni deploy + rescan sonrası kapanır. |
+| **6** COOP Missing | `next.config.js` içinde zaten `Cross-Origin-Opener-Policy: same-origin` var. Nginx header’ı silmiyorsa rescan’da görünür. |
+| **7** Suspicious Comments | **False positive.** “query”, “select”, “from” minify edilmiş Next.js/core-js kodunda; uygulama kaynak kodu değil. TAC’a: “Findings in third-party bundled code; no application comments.” |
+| **8** Modern Web Application | **Bilgilendirme.** “No changes required.” TAC dokümanında yazıyor. |
+| **9** Storable and Cacheable | Hassas sayfalar `no-store` ile işaretli. Statik chunk’lar için `max-age` normal. Gerekirse TAC’a: “Sensitive routes use no-store; static assets are versioned.” |

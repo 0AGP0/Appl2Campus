@@ -10,6 +10,7 @@ Sunucuda ekleme işlemleri başarısız oluyorsa şunları kontrol edin:
 2. **NEXTAUTH_SECRET** – Sunucuda tanımlı ve en az 32 karakter
 3. **HTTPS** – Session cookie `Secure` ile set edilir; yalnızca HTTPS üzerinden gönderilir. Proxy arkasındaysanız X-Forwarded-Proto: https olmalı
 4. **Cookie domain** – NEXTAUTH_URL ile aynı domain kullanılmalı
+5. **Rate limiting (isteğe bağlı):** Çoklu instance veya DDoS koruması için [Upstash Redis](https://console.upstash.com/) kullanılabilir. `.env` içinde `UPSTASH_REDIS_REST_URL` ve `UPSTASH_REDIS_REST_TOKEN` tanımlanırsa: global API limiti (100 istek/dakika/IP) ve kayıt/giriş/sync limitleri Redis üzerinden uygulanır.
 
 ## Standart güncelleme (veriye dokunulmaz)
 

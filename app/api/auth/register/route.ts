@@ -6,7 +6,7 @@ import { checkRegisterRateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   const ip = getClientIp(req.headers);
-  if (!checkRegisterRateLimit(ip)) {
+  if (!(await checkRegisterRateLimit(ip))) {
     return NextResponse.json(
       { error: "Çok fazla kayıt denemesi. Lütfen 15 dakika sonra tekrar deneyin." },
       { status: 429 }

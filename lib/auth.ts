@@ -6,7 +6,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./db";
-import { checkLoginRateLimitByEmail, incrementLoginAttempts } from "./rate-limit";
+import { checkLoginRateLimitByEmailAsync, incrementLoginAttempts } from "./rate-limit";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
@@ -37,7 +37,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
         const email = credentials.email.trim().toLowerCase();
-        if (!checkLoginRateLimitByEmail(email)) return null;
+        if (!(await checkLoginRateLimitByEmailAsync(email))) return null;
         const user = await prisma.user.findUnique({
           where: { email },
         });

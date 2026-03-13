@@ -53,7 +53,8 @@ export async function POST(
       },
     });
     if (offerWithItems?.items?.length) {
-      const institutionIds = [...new Set(offerWithItems.items.map((i) => i.institutionId).filter(Boolean))] as string[];
+      const ids = offerWithItems.items.map((i) => i.institutionId).filter((id): id is string => id != null);
+      const institutionIds = ids.filter((id, index) => ids.indexOf(id) === index);
       const institutions = institutionIds.length
         ? await prisma.institution.findMany({ where: { id: { in: institutionIds } }, select: { id: true, type: true, name: true, address: true } })
         : [];

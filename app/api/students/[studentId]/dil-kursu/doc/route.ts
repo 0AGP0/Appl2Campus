@@ -35,10 +35,11 @@ export async function GET(
     where: { id: studentId },
     select: { [pathField]: true },
   });
-  const relativePath = student?.[pathField];
-  if (!relativePath || typeof relativePath !== "string" || !documentExists(relativePath)) {
+  const rawPath = student?.[pathField];
+  if (!rawPath || typeof rawPath !== "string" || !documentExists(rawPath)) {
     return NextResponse.json({ error: "Dosya bulunamadı" }, { status: 404 });
   }
+  const relativePath: string = rawPath;
 
   const filename = relativePath.split("/").pop() ?? "dosya";
   const displayName = filename.replace(/^[a-z0-9]+_/i, "") || "dosya";

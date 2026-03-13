@@ -132,7 +132,7 @@ export function DilKursuCard({ studentId }: { studentId: string }) {
   if (loading) return null;
 
   const inst = data?.languageCourseInstitution;
-  const hasDoc = (path: string | null) => path && path.length > 0;
+  const hasDoc = (path: string | null | undefined) => path != null && path.length > 0;
   const docUrl = (field: string) => `/api/students/${studentId}/dil-kursu/doc?field=${field}`;
 
   return (

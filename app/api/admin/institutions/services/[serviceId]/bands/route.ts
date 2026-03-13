@@ -1,28 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession, authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { calculatePriceFromBands } from "@/lib/price-bands";
-
-type Band = { minWeeks: number; maxWeeks: number; pricePerWeek: number; currency: string };
-
-/** Hafta sayısına göre toplam tutarı hesaplar. Bandlar minWeeks'e göre sıralı gelmeli. */
-export function calculatePriceFromBands(bands: Band[], weeks: number): { total: number; currency: string } | null {
-  if (weeks <= 0 || bands.length === 0) return null;
-  let remaining = weeks;
-  let total = 0;
-  const currency = bands[0]?.currency ?? "EUR";
-  for (const b of bands) {
-    if (remaining <= 0) break;
-    const bandMax = b.maxWeeks === 0 ? 9999 : b.maxWeeks;
-    const weeksInBand = Math.min(remaining, bandMax - b.minWeeks + 1);
-    if (weeksInBand > 0) {
-      total += weeksInBand * b.pricePerWeek;
-      remaining -= weeksInBand;
-    }
-  }
-  if (remaining > 0) return null; // Tüm haftalar karşılanamadı
-  return { total, currency };
-}
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ serviceId: string }> }) {
   const session = await getServerSession(authOptions);

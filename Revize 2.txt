@@ -1,0 +1,125 @@
+2. Öğrenci Süreç Yönetimi (Kanban Görünümü)
+Eğitim danışmanları ve operasyon ekibi, öğrencileri kanban görünümünde süreç aşamalarına göre takip edebilmelidir.
+Referans yapı: Odoo Project Kanban görünümü
+Süreç Aşamaları
+Üniversite Aşaması
+Kabul Gelenler
+Program Kayıt & Konaklama
+Vize Başvuru
+Vize Randevu
+Süreci Biten
+Bu görünüm sayesinde:
+Öğrenciler sürükle-bırak ile aşama değiştirebilir
+Süreç yönetimi görsel olarak takip edilebilir
+
+
+
+3.1. Dil Kursu Süreç Yönetimi
+
+Öğrencilerin paneline yeni sekme Dil Kursu sekmesi eklenebilir.
+
+
+İçerik olarak:
+Dil kursu adı
+Dil kursu Başlangıç tarihi
+Dil kursu kayıt belgesinin yükleneceği ve görüntüleneceği alan.
+Dil kursu faturası yükleneceği ve görüntüleneceği alan.
+Dil kursu dekontu yükleneceği ve görüntüleneceği alan.
+Dil kursu faturası ve kayıt belgesi operasyon tarafından yüklenmeli; dekontu ise öğrenci yüklemeli.
+Aynı sekmede dil kursu ertelemeleri için ertelenen tarihleri ve önceki tarihleri girebileceğimiz alan olmalı.
+Bu sekmede öğrencinin kayıtlı olduğu dil kursunun kartı yer alabilir, bu sayede dil kursunun iletişim bilgilerini hızlıca kontrol edebilir ve mail atmak için süreci hızlandırabiliriz.
+Her bir dil kursu için oluşturacağımız kurum kartı için Partner olup olmadıklarını seçebileceğimiz bir label olabilir.
+Danışmanların dil kursu kataloglarına erişimleri olmalı, olası görüşme ve sunumlarda buradan dil kursları ile ilgili güncel bilgiye ulaşabilirler.
+
+
+
+
+
+
+3.2. Konaklama Süreç Yönetimi
+Konaklama paketi bulunan öğrencilerin başvuru aşamalarının bittiği ve vize randevusuna girdikleri andan itibaren konaklama süreçlerinin başlaması gerekir. Bu nedenle konaklama için bir aşama belirlenebilir. Kanban görünümünde ve olası filtreleme işlemlerinde bu aşama sayesinde konaklama süreci eksiksiz ve tam zamanında yönetilebilir.
+Öğrencinin konaklayacağı ülke/şehir genelde öğrencinin dil kursuna gittiği şehir olarak belirleniyor. Bu yüzden dil kursu şehri database de yer almalı.
+Filtreleme örneği: 
+Öğrenciler > Aşama != Biten
+&&
+Öğrenciler > Konaklama Paketi “true”
+&&
+
+Öğrenciler > Dil Kursu Şehri “içerir” Bremen
+Bu şekilde filtreler ekleyebilirsek süreci bitmemiş, konaklama paketi bulunan ve Bremen de konaklayacak öğrencilerin listesini kolayca elde edebilir ve buna göre planlama yapabiliriz.
+
+
+
+4. Öğrenci Profilinde Not / Log Sistemi
+Odoo Contact Kişi kartında not ekleme benzeri bir yapı gereklidir.
+Odooda sağ tarafta danışmanının ve o kişi kartını görebilen kişilerin not ekleyebileceği belge ekleyebileceği bir not log sistemi var bunun gibi bir sistem eklemeliyiz öğrenci panellerine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+7. Vize Bilgileri Modülü
+Eski portal yapısına benzer bir vize bilgi alanı oluşturulmalıdır.
+Operasyon / Danışman Tarafından Girilen Bilgiler
+Başvurulan Konsolosluk
+Vize Başvuru Tarihi
+Randevu Tarihi
+Öğrenci Tarafından Girilen Bilgiler
+Randevu sonrası öğrenci aşağıdaki bilgileri ekleyebilmelidir:
+Vize başlangıç tarihi
+Vize bitiş tarihi
+Vize belgesi yükleme
+Ayrıca sistemde:
+“Vizem Geldi” butonu bulunmalıdır.
+Buton tıklandığında:
+Öğrenci vize bilgilerini doldurur
+Vize belgesini yükler
+Program Bilgileri
+Program başlangıç bilgileri sistemde yer almalıdır.
+Bu bilgiler:
+Eğitim danışmanı tarafından yapılan tekliflerden otomatik çekilebilir.
+Örnek:
+Üniversite programı başlangıcı
+Dil kursu başlangıcı
+Konaklama başlangıcı
+ 
+
+
+
+
+9. Eğitim Videoları Modülü
+YouTube playlist sistem içine embed edilmelidir.
+Playlist:
+https://www.youtube.com/watch?v=4pmBP3ehf0M&list=PLwmei0cWWv_aceoGRw6g0LWqyCxo7H_rW
+Videolar 3 kategoriye ayrılmalıdır.
+1. Üniversite Kabul Süreci
+Video 1 – 7
+2. Vizeye Doğru
+Video 8 – 21
+3. Almanya Rehberi
+Video 22 ve sonrası
+
+10. Teklif Modülü – Kurum Kartı
+Operasyon ekibi sistemde yeni kurumlar ekleyebilmelidir.
+Kurs Ücretlendirme Sistemi
+Program ücretleri tarih bazlı değil, hafta bazlı tanımlanmalıdır. Yine konaklama aynı şekilde. Diğer hizmetler kısmı tek seferlik ödemeler mevcut.
+Örnek
+Süre
+Haftalık Ücret
+1 – 7 hafta
+230 €
+8 – 24 hafta
+180 €
+
+Sistem:
+Öğrencinin seçtiği hafta sayısına göre
+otomatik fiyat hesaplayabilmelidir.

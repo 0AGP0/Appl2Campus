@@ -183,6 +183,13 @@ export function AppSidebar({ user, pathname, onNavigate, variant = "desktop" }: 
               active={pathname === "/panel/gorevler"}
               onNavigate={onNavigate}
             />
+            <NavLink
+              href="/panel/kataloglar"
+              label="Dil kursu katalogları"
+              icon="menu_book"
+              active={pathname === "/panel/kataloglar"}
+              onNavigate={onNavigate}
+            />
           </>
         ) : (
           <>
@@ -219,6 +226,13 @@ export function AppSidebar({ user, pathname, onNavigate, variant = "desktop" }: 
               label="Görevler"
               icon="assignment"
               active={pathname === "/panel/gorevler"}
+              onNavigate={onNavigate}
+            />
+            <NavLink
+              href="/panel/kataloglar"
+              label="Dil kursu katalogları"
+              icon="menu_book"
+              active={pathname === "/panel/kataloglar"}
               onNavigate={onNavigate}
             />
           </>

@@ -13,7 +13,10 @@ export async function GET() {
     include: {
       services: {
         orderBy: { sortOrder: "asc" },
-        include: { prices: { orderBy: { startDate: "asc" } } },
+        include: {
+          prices: { orderBy: { startDate: "asc" } },
+          priceBands: { orderBy: { minWeeks: "asc" } },
+        },
       },
       images: { orderBy: { sortOrder: "asc" } },
     },
@@ -29,6 +32,13 @@ export async function GET() {
           amount: Number(p.amount),
           startDate: p.startDate.toISOString().slice(0, 10),
           endDate: p.endDate.toISOString().slice(0, 10),
+        })),
+        priceBands: s.priceBands.map((b) => ({
+          id: b.id,
+          minWeeks: b.minWeeks,
+          maxWeeks: b.maxWeeks,
+          pricePerWeek: Number(b.pricePerWeek),
+          currency: b.currency,
         })),
       })),
     })),

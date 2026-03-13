@@ -51,7 +51,7 @@ body {
   --panel-py: 1rem;
   width: 100%;
   max-width: 100%;
-  min-height: 100%;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   padding: var(--panel-py) var(--panel-px);
@@ -175,6 +175,7 @@ body {
   flex-direction: column;
   min-height: 0;
   flex: 1;
+  overflow-y: auto;
 }
 
 .panel-title {

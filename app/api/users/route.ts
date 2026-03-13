@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
     console.error("User create error:", e);
     return NextResponse.json(
       { error: "Kullanıcı oluşturulamadı. Lütfen tekrar deneyin." },
-      { status: 500 }
+      { status: 500}
     );
   }
 }

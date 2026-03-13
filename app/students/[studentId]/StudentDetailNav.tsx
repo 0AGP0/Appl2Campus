@@ -8,6 +8,7 @@ const TABS = [
   { href: (id: string) => `/students/${id}/profil`, label: "Profil", icon: "person" },
   { href: (id: string) => `/students/${id}/belgeler`, label: "Belgeler", icon: "folder" },
   { href: (id: string) => `/students/${id}/vize`, label: "Vize", icon: "badge" },
+  { href: (id: string) => `/students/${id}/dil-kursu`, label: "Dil Kursu", icon: "translate" },
   { href: (id: string) => `/students/${id}/basvurular`, label: "Başvurular", icon: "school" },
   { href: (id: string) => `/students/${id}/teklifler`, label: "Teklifler", icon: "request_quote" },
   { href: (id: string) => `/students/${id}/inbox`, label: "Gelen kutusu", icon: "inbox" },

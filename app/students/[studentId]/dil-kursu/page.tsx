@@ -1,9 +1,9 @@
 import { getServerSession, authOptions } from "@/lib/auth";
 import { canAccessStudent } from "@/lib/rbac";
 import { notFound } from "next/navigation";
-import { StudentBelgelerFullClient } from "../StudentBelgelerFullClient";
+import { DilKursuCard } from "../DilKursuCard";
 
-export default async function StudentBelgelerPage({
+export default async function StudentDilKursuPage({
   params,
 }: {
   params: Promise<{ studentId: string }>;
@@ -16,5 +16,9 @@ export default async function StudentBelgelerPage({
   const ok = await canAccessStudent(session.user.id, role, studentId, sessionStudentId);
   if (!ok) notFound();
 
-  return <StudentBelgelerFullClient studentId={studentId} />;
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <DilKursuCard studentId={studentId} />
+    </div>
+  );
 }

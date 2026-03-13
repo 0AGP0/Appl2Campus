@@ -73,6 +73,10 @@ export function StudentDashboardLayout({
           <span className="material-icons-outlined text-xl">badge</span>
           <span className="font-medium text-sm">Vize Bilgileri</span>
         </Link>
+        <Link href="/dashboard/dil-kursu" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${pathname === "/dashboard/dil-kursu" ? "bg-primary/10 text-primary" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"}`}>
+          <span className="material-icons-outlined text-xl">translate</span>
+          <span className="font-medium text-sm">Dil Kursu</span>
+        </Link>
         <Link href="/dashboard/videolar" onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${pathname === "/dashboard/videolar" ? "bg-primary/10 text-primary" : "text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"}`}>
           <span className="material-icons-outlined text-xl">play_circle</span>
           <span className="font-medium text-sm">Eğitim Videoları</span>

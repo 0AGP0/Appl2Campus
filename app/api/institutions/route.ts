@@ -19,6 +19,7 @@ export async function GET() {
         orderBy: { sortOrder: "asc" },
         include: {
           prices: { orderBy: { startDate: "asc" } },
+          priceBands: { orderBy: { minWeeks: "asc" } },
         },
       },
     },
@@ -45,6 +46,10 @@ export async function GET() {
       logoUrl: i.logoUrl,
       description: i.description,
       address: i.address,
+      isPartner: i.isPartner,
+      contactEmail: i.contactEmail,
+      contactPhone: i.contactPhone,
+      catalogPdfPath: i.catalogPdfPath,
       services: i.services.map((s) => ({
         id: s.id,
         group: s.group,
@@ -56,6 +61,13 @@ export async function GET() {
           endDate: p.endDate.toISOString().slice(0, 10),
           amount: Number(p.amount),
           currency: p.currency,
+        })),
+        priceBands: s.priceBands.map((b) => ({
+          id: b.id,
+          minWeeks: b.minWeeks,
+          maxWeeks: b.maxWeeks,
+          pricePerWeek: Number(b.pricePerWeek),
+          currency: b.currency,
         })),
       })),
     })),

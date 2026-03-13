@@ -15,8 +15,11 @@ export async function GET(req: NextRequest) {
 
   const search = req.nextUrl.searchParams.get("search") ?? "";
   const stage = req.nextUrl.searchParams.get("stage") ?? "";
+  const stageNot = req.nextUrl.searchParams.get("stageNot") ?? ""; // Örn. "bitten"
   const gmailStatus = req.nextUrl.searchParams.get("gmailStatus") ?? "";
   const consultantId = req.nextUrl.searchParams.get("consultantId") ?? "";
+  const accommodationPackage = req.nextUrl.searchParams.get("accommodationPackage") ?? ""; // "true" | "false"
+  const languageCourseCity = req.nextUrl.searchParams.get("languageCourseCity") ?? ""; // içerir araması
   const page = Math.max(1, parseInt(req.nextUrl.searchParams.get("page") ?? "1", 10));
   const pageSize = Math.min(250, Math.max(10, parseInt(req.nextUrl.searchParams.get("pageSize") ?? "50", 10)));
 
@@ -32,6 +35,7 @@ export async function GET(req: NextRequest) {
     );
   }
   if (stage) filtered = filtered.filter((s) => s.stage === stage);
+  if (stageNot) filtered = filtered.filter((s) => s.stage !== stageNot);
   if (gmailStatus) {
     filtered = filtered.filter((s) => {
       const status = s.gmailConnection?.status ?? "disconnected";
@@ -40,6 +44,17 @@ export async function GET(req: NextRequest) {
   }
   if (consultantId && role === "ADMIN")
     filtered = filtered.filter((s) => s.assignedConsultantId === consultantId);
+  if (accommodationPackage === "true") filtered = filtered.filter((s) => (s as { accommodationPackage?: boolean }).accommodationPackage === true);
+  if (accommodationPackage === "false") filtered = filtered.filter((s) => (s as { accommodationPackage?: boolean }).accommodationPackage !== true);
+  if (languageCourseCity.trim()) {
+    const cityQ = languageCourseCity.trim().toLowerCase();
+    filtered = filtered.filter(
+      (s) => {
+        const city = (s as { languageCourseCity?: string | null }).languageCourseCity;
+        return city != null && city.toLowerCase().includes(cityQ);
+      }
+    );
+  }
 
   const total = filtered.length;
   const start = (page - 1) * pageSize;
@@ -58,7 +73,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const role = (session.user as { role?: string }).role ?? "CONSULTANT";
-  if (role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status : 403 });
 
   const body = await req.json();
   const { name, studentEmail, gmailAddress, stage, assignedConsultantId, password, loginEmail } = body;

@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 
 type InstitutionPrice = { id: string; startDate: string; endDate: string; amount: number; currency: string };
-type InstitutionService = { id: string; group: string; name: string; prices: InstitutionPrice[] };
+type InstitutionPriceBand = { id: string; minWeeks: number; maxWeeks: number; pricePerWeek: number; currency: string };
+type InstitutionService = { id: string; group: string; name: string; prices: InstitutionPrice[]; priceBands: InstitutionPriceBand[] };
 type InstitutionImage = { id: string; filePath: string; sortOrder: number };
 type Institution = {
   id: string;
@@ -30,10 +31,15 @@ export function AdminKurumlarClient() {
   const [newServiceName, setNewServiceName] = useState("");
   const [newServiceGroup, setNewServiceGroup] = useState("EDUCATION");
   const [addPriceModal, setAddPriceModal] = useState<{ serviceId: string } | null>(null);
+  const [addBandModal, setAddBandModal] = useState<{ serviceId: string } | null>(null);
   const [newPriceStart, setNewPriceStart] = useState("");
   const [newPriceEnd, setNewPriceEnd] = useState("");
   const [newPriceAmount, setNewPriceAmount] = useState("");
   const [newPriceCurrency, setNewPriceCurrency] = useState("EUR");
+  const [newBandMinWeeks, setNewBandMinWeeks] = useState("1");
+  const [newBandMaxWeeks, setNewBandMaxWeeks] = useState("0");
+  const [newBandPricePerWeek, setNewBandPricePerWeek] = useState("");
+  const [newBandCurrency, setNewBandCurrency] = useState("EUR");
   const [submitting, setSubmitting] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState<string | null>(null);
   const [uploadingCatalog, setUploadingCatalog] = useState<string | null>(null);
@@ -135,6 +141,54 @@ export function AdminKurumlarClient() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const addBand = async () => {
+    if (!addBandModal || !newBandPricePerWeek) return;
+    const minW = parseInt(newBandMinWeeks, 10);
+    const maxW = parseInt(newBandMaxWeeks, 10);
+    const amt = parseFloat(newBandPricePerWeek);
+    if (isNaN(minW) || minW < 0 || isNaN(maxW) || maxW < 0 || isNaN(amt) || amt < 0) {
+      alert("Geçerli değerler girin. Bitiş haftası 0 = sınırsız.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/institutions/services/${addBandModal.serviceId}/bands`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          minWeeks: minW,
+          maxWeeks: maxW,
+          pricePerWeek: amt,
+          currency: newBandCurrency,
+        }),
+      });
+      if (res.ok) {
+        setAddBandModal(null);
+        setNewBandMinWeeks("1");
+        setNewBandMaxWeeks("0");
+        setNewBandPricePerWeek("");
+        await load();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error ?? `Eklenemedi (${res.status})`);
+      }
+    } catch (e) {
+      alert("Bağlantı hatası.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const deleteBand = async (serviceId: string, bandId: string) => {
+    if (!confirm("Bu fiyat bandını silmek istiyor musunuz?")) return;
+    try {
+      const res = await fetch(`/api/admin/institutions/services/${serviceId}/bands/${bandId}`, { method: "DELETE" });
+      if (res.ok) await load();
+      else alert("Silinemedi");
+    } catch { alert("Silinemedi"); }
   };
 
   const deleteInstitution = async (id: string) => {
@@ -298,6 +352,31 @@ export function AdminKurumlarClient() {
                           ))}
                         </ul>
                       )}
+                      <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-600">
+                        <p className="text-xs font-medium text-slate-500 mb-1">Haftalık fiyat bandları</p>
+                        {(s.priceBands ?? []).length === 0 ? (
+                          <p className="text-xs text-slate-500">Band yok.</p>
+                        ) : (
+                          <ul className="text-sm space-y-1">
+                            {(s.priceBands ?? []).map((b) => (
+                              <li key={b.id} className="flex justify-between items-center">
+                                <span>{b.minWeeks} – {b.maxWeeks === 0 ? "∞" : b.maxWeeks} hf</span>
+                                <span className="flex items-center gap-1">
+                                  <span className="font-medium">{b.pricePerWeek.toFixed(2)} {b.currency}/hf</span>
+                                  <button type="button" onClick={() => deleteBand(s.id, b.id)} className="p-0.5 text-slate-400 hover:text-red-600" title="Sil"><span className="material-icons-outlined text-sm">close</span></button>
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => { setAddBandModal({ serviceId: s.id }); setNewBandMinWeeks("1"); setNewBandMaxWeeks("0"); setNewBandPricePerWeek(""); }}
+                          className="text-xs mt-1 text-primary hover:underline"
+                        >
+                          + Haftalık band ekle
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -392,6 +471,42 @@ export function AdminKurumlarClient() {
             <div className="flex gap-2 mt-6">
               <button type="button" onClick={() => setAddPriceModal(null)} className="flex-1 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium">İptal</button>
               <button type="button" onClick={addPrice} disabled={submitting || !newPriceStart || !newPriceEnd || !newPriceAmount} className="flex-1 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50">{submitting ? "Ekleniyor…" : "Ekle"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {addBandModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-4">Haftalık fiyat bandı ekle</h3>
+            <p className="text-xs text-slate-500 mb-4">Örn. 1–7 hf → 230 €/hf, 8–24 hf → 180 €/hf. Bitiş 0 = sınırsız.</p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Başlangıç haftası *</label>
+                  <input type="number" min={1} value={newBandMinWeeks} onChange={(e) => setNewBandMinWeeks(e.target.value)} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Bitiş haftası (0=sınırsız)</label>
+                  <input type="number" min={0} value={newBandMaxWeeks} onChange={(e) => setNewBandMaxWeeks(e.target.value)} className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Haftalık ücret *</label>
+                <div className="flex gap-2">
+                  <input type="number" step="0.01" value={newBandPricePerWeek} onChange={(e) => setNewBandPricePerWeek(e.target.value)} placeholder="0" className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm" />
+                  <select value={newBandCurrency} onChange={(e) => setNewBandCurrency(e.target.value)} className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm w-24">
+                    <option value="EUR">EUR</option>
+                    <option value="USD">USD</option>
+                    <option value="TRY">TRY</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-6">
+              <button type="button" onClick={() => setAddBandModal(null)} className="flex-1 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-sm font-medium">İptal</button>
+              <button type="button" onClick={addBand} disabled={submitting || !newBandPricePerWeek} className="flex-1 py-2 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 disabled:opacity-50">{submitting ? "Ekleniyor…" : "Ekle"}</button>
             </div>
           </div>
         </div>

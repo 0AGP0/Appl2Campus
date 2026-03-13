@@ -47,6 +47,7 @@ model User {
   appointmentRequestsAsConsultant AppointmentRequest[] @relation("AppointmentRequestsAsConsultant")
   tasksAssignedBy       Task[]                 @relation("TaskAssignedBy")
   tasksAssignedTo       Task[]                 @relation("TaskAssignedTo")
+  studentNotes          StudentNote[]          @relation("NoteAuthor")
 }
 
 model Account {
@@ -106,6 +107,22 @@ model Student {
   visaCity             String?
   visaProgramStartDate DateTime? // Program başlangıç tarihi
   visaNotes            String?   @db.Text // Bilgi (teklifin kabulü vb.)
+  visaConsulate        String?   // Başvurulan konsolosluk
+  visaApplicationDate  DateTime? // Vize başvuru tarihi
+  visaAppointmentDate  DateTime? // Vize randevu tarihi
+  visaStartDate        DateTime? // Vize başlangıç tarihi (öğrenci girer)
+  visaEndDate          DateTime? // Vize bitiş tarihi (öğrenci girer)
+  visaDocumentPath     String?   // Vize belgesi (öğrenci yükler)
+  accommodationPackage Boolean   @default(false) // Konaklama paketi var mı
+  accommodationStartDate DateTime? // Konaklama başlangıç (tekliften otomatik)
+  languageCourseCity   String?   // Konaklama/dil kursu şehri (filtre için)
+  languageCourseName   String?   // Dil kursu adı
+  languageCourseStartDate DateTime? // Dil kursu başlangıç tarihi
+  languageCourseInstitutionId String? // Kayıtlı dil kursu kurumu
+  languageCourseRegistrationDocPath String? // Kayıt belgesi (operasyon yükler)
+  languageCourseInvoicePath  String? // Fatura (operasyon yükler)
+  languageCourseReceiptPath String? // Dekont (öğrenci yükler)
+  languageCoursePostponements Json?  // Ertelemeler: [{ from: "YYYY-MM-DD", to: "YYYY-MM-DD" }]
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
@@ -124,10 +141,33 @@ model Student {
   applications   StudentApplication[]
   appointmentRequests AppointmentRequest[]
   tasks               Task[]
+  notes               StudentNote[]
+  languageCourseInstitution Institution? @relation(fields: [languageCourseInstitutionId], references: [id], onDelete: SetNull)
 
   @@index([assignedConsultantId])
   @@index([stage])
   @@index([gmailAddress])
+  @@index([accommodationPackage])
+  @@index([languageCourseCity])
+}
+
+// Öğrenci kartında not/log (Odoo Contact benzeri)
+model StudentNote {
+  id        String   @id @default(cuid())
+  studentId String
+  authorId  String
+  type      String   @default("note") // note | file | system
+  content   String?  @db.Text
+  fileName  String?  // Dosya adı (type=file)
+  filePath  String?  // Depolama yolu (type=file)
+  createdAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  author  User    @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([authorId])
+  @@index([studentId, createdAt])
 }
 
 // Danışman müsait saatleri (takvim slotları)
@@ -535,6 +575,9 @@ model Institution {
   logoUrl         String?
   description     String?         @db.Text
   address         String?         @db.Text
+  isPartner       Boolean         @default(false) // Partner dil kursu etiketi
+  contactEmail    String?         // İletişim e-posta
+  contactPhone    String?         // İletişim telefon
   catalogPdfPath  String?         // Katalog PDF (yüklenen dosya)
   sortOrder       Int             @default(0)
   createdAt       DateTime        @default(now())
@@ -542,6 +585,7 @@ model Institution {
 
   services InstitutionService[]
   images   InstitutionImage[]
+  studentsWithLanguageCourse Student[]
 
   @@index([type])
 }
@@ -574,6 +618,7 @@ model InstitutionService {
 
   institution Institution        @relation(fields: [institutionId], references: [id], onDelete: Cascade)
   prices      InstitutionPrice[]
+  priceBands  InstitutionPriceBand[]
 
   @@index([institutionId])
 }
@@ -591,6 +636,23 @@ model InstitutionPrice {
 
   @@index([serviceId])
   @@index([serviceId, startDate, endDate])
+}
+
+// Haftalık ücretlendirme bandı (Revize 10: 1–7 hf → 230€/hf, 8–24 hf → 180€/hf)
+model InstitutionPriceBand {
+  id           String   @id @default(cuid())
+  serviceId    String
+  minWeeks     Int      // Bu bandın başladığı hafta (1-based)
+  maxWeeks     Int      // Bu bandın bittiği hafta; 0 = sınırsız (tüm kalan haftalar)
+  pricePerWeek Decimal  @db.Decimal(12, 2)
+  currency     String   @default("EUR")
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  service InstitutionService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId])
+  @@index([serviceId, minWeeks])
 }
 
 // Teklif kataloğu – ürün/attribute yapısı (ülke + şehir, okul, program + süre fiyatları)

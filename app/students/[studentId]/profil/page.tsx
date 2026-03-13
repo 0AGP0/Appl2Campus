@@ -16,9 +16,5 @@ export default async function StudentProfilPage({
   const ok = await canAccessStudent(session.user.id, role, studentId, sessionStudentId);
   if (!ok) notFound();
 
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-      <CrmCardClient studentId={studentId} editable />
-    </div>
-  );
+  return <CrmCardClient studentId={studentId} editable />;
 }

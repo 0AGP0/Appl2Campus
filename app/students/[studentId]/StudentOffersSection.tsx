@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { DURATION_OPTIONS } from "@/lib/catalog";
 import { getOfferStatusLabel, ACTIVE_OFFER_STATUSES } from "@/lib/offer-status";
 
-/** Kurum kartı (teklifte kurum + tarih aralığı ile fiyat). */
-type InstitutionService = { id: string; group: string; groupLabel: string; name: string; prices: { id: string; startDate: string; endDate: string; amount: number; currency: string }[] };
+/** Kurum kartı (teklifte kurum + tarih aralığı veya hafta sayısı ile fiyat). */
+type InstitutionService = { id: string; group: string; groupLabel: string; name: string; prices: { id: string; startDate: string; endDate: string; amount: number; currency: string }[]; priceBands?: { id: string; minWeeks: number; maxWeeks: number; pricePerWeek: number; currency: string }[] };
 type Institution = { id: string; type: string; typeLabel: string; name: string; services: InstitutionService[] };
 
 /** Katalog ürünü (attribute tabanlı: süre → fiyat). */
@@ -205,7 +205,8 @@ function OfferFormModal({
   const [selectedService, setSelectedService] = useState("");
   const [kurumStartDate, setKurumStartDate] = useState("");
   const [kurumEndDate, setKurumEndDate] = useState("");
-  const [kurumPrice, setKurumPrice] = useState<{ amount: number; currency: string; serviceName: string; institutionName: string } | null>(null);
+  const [kurumWeeks, setKurumWeeks] = useState("");
+  const [kurumPrice, setKurumPrice] = useState<{ amount: number; currency: string; serviceName: string; institutionName: string; durationWeeks?: number } | null>(null);
   const [kurumPriceLoading, setKurumPriceLoading] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
@@ -226,9 +227,28 @@ function OfferFormModal({
   const canAddSelected = selectedRows.length > 0 && selectedRows.every((r) => getAmount(r, selectedDuration) != null);
   const inst = institutions.find((i) => i.id === selectedInstitution);
   const service = inst?.services.find((s) => s.id === selectedService);
+  const useWeeksPricing = (service?.priceBands?.length ?? 0) > 0;
 
   async function fetchKurumPrice() {
-    if (!selectedService || !kurumStartDate || !kurumEndDate) return;
+    if (!selectedService) return;
+    if (useWeeksPricing) {
+      const weeks = parseInt(kurumWeeks, 10);
+      if (isNaN(weeks) || weeks < 1) return;
+      setKurumPriceLoading(true);
+      setKurumPrice(null);
+      try {
+        const res = await fetch(`/api/institution-prices?serviceId=${encodeURIComponent(selectedService)}&weeks=${weeks}`);
+        const data = await res.json();
+        if (res.ok && data.price) setKurumPrice({ ...data.price, durationWeeks: weeks });
+        else setKurumPrice(null);
+      } catch {
+        setKurumPrice(null);
+      } finally {
+        setKurumPriceLoading(false);
+      }
+      return;
+    }
+    if (!kurumStartDate || !kurumEndDate) return;
     setKurumPriceLoading(true);
     setKurumPrice(null);
     try {
@@ -251,8 +271,9 @@ function OfferFormModal({
       amount: kurumPrice.amount,
       currency: kurumPrice.currency,
       institutionId: inst.id,
-      startDate: kurumStartDate,
-      endDate: kurumEndDate,
+      durationWeeks: kurumPrice.durationWeeks,
+      startDate: kurumStartDate || undefined,
+      endDate: kurumEndDate || undefined,
     };
     setItems((prev) => [...prev, newItem]);
     setKurumPrice(null);
@@ -260,6 +281,7 @@ function OfferFormModal({
     setSelectedService("");
     setKurumStartDate("");
     setKurumEndDate("");
+    setKurumWeeks("");
     setStep("form");
   }
 
@@ -365,7 +387,7 @@ function OfferFormModal({
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setStep("addItemKurum"); setAddItemSource("kurum"); setSelectedInstitution(""); setSelectedService(""); setKurumStartDate(""); setKurumEndDate(""); setKurumPrice(null); }}
+                        onClick={() => { setStep("addItemKurum"); setAddItemSource("kurum"); setSelectedInstitution(""); setSelectedService(""); setKurumStartDate(""); setKurumEndDate(""); setKurumWeeks(""); setKurumPrice(null); }}
                         className="text-sm font-medium text-primary hover:underline"
                       >
                         + Kurum kartından ekle
@@ -397,6 +419,89 @@ function OfferFormModal({
                     </ul>
                   )}
                 </div>
+              </div>
+            </>
+          ) : step === "addItemKurum" ? (
+            <>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">Kurum ve hizmet seçin. Haftalık fiyat bandı varsa hafta sayısıyla otomatik fiyat hesaplanır.</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Kurum</label>
+                  <select
+                    value={selectedInstitution}
+                    onChange={(e) => { setSelectedInstitution(e.target.value); setSelectedService(""); setKurumPrice(null); }}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
+                  >
+                    <option value="">Seçin</option>
+                    {institutions.map((i) => (
+                      <option key={i.id} value={i.id}>{i.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {selectedInstitution && inst && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Hizmet</label>
+                    <select
+                      value={selectedService}
+                      onChange={(e) => { setSelectedService(e.target.value); setKurumPrice(null); }}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
+                    >
+                      <option value="">Seçin</option>
+                      {inst.services.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name} {(s.priceBands?.length ?? 0) > 0 ? "(haftalık)" : ""}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {selectedService && service && (
+                  useWeeksPricing ? (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Hafta sayısı</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={kurumWeeks}
+                        onChange={(e) => { setKurumWeeks(e.target.value); setKurumPrice(null); }}
+                        placeholder="Örn. 10"
+                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800"
+                      />
+                      <button
+                        type="button"
+                        onClick={fetchKurumPrice}
+                        disabled={kurumPriceLoading || !kurumWeeks || parseInt(kurumWeeks, 10) < 1}
+                        className="mt-2 px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium disabled:opacity-50"
+                      >
+                        {kurumPriceLoading ? "Hesaplanıyor…" : "Fiyat hesapla"}
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Başlangıç tarihi</label>
+                        <input type="date" value={kurumStartDate} onChange={(e) => { setKurumStartDate(e.target.value); setKurumPrice(null); }} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Bitiş tarihi</label>
+                        <input type="date" value={kurumEndDate} onChange={(e) => { setKurumEndDate(e.target.value); setKurumPrice(null); }} className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={fetchKurumPrice}
+                        disabled={kurumPriceLoading || !kurumStartDate || !kurumEndDate}
+                        className="px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium disabled:opacity-50"
+                      >
+                        {kurumPriceLoading ? "Hesaplanıyor…" : "Fiyat hesapla"}
+                      </button>
+                    </>
+                  )
+                )}
+                {kurumPrice && (
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{kurumPrice.institutionName} · {kurumPrice.serviceName}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{kurumPrice.amount.toFixed(2)} {kurumPrice.currency}{kurumPrice.durationWeeks ? ` (${kurumPrice.durationWeeks} hf)` : ""}</p>
+                    <button type="button" onClick={addKurumItem} className="mt-2 px-4 py-2 rounded-xl bg-primary text-white text-sm font-medium">Kaleme ekle</button>
+                  </div>
+                )}
               </div>
             </>
           ) : (

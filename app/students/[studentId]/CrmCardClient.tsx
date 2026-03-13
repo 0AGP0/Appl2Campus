@@ -140,7 +140,7 @@ export function CrmCardClient({ studentId, editable = false }: { studentId: stri
   if (sections.length === 0) return null;
 
   return (
-    <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden mb-6 shadow-sm">
+    <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 mb-6 shadow-sm">
       <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-white dark:from-slate-800/50 dark:to-slate-900 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="material-icons-outlined text-primary text-2xl">badge</span>
@@ -161,7 +161,9 @@ export function CrmCardClient({ studentId, editable = false }: { studentId: stri
       )}
 
       <div className="divide-y divide-slate-200 dark:divide-slate-700">
-        {sections.map((sec) => {
+        {sections
+          .filter((sec) => sec.slug !== "documents")
+          .map((sec) => {
           const isOpen = openSection === sec.id;
           return (
             <div key={sec.id}>
@@ -176,76 +178,11 @@ export function CrmCardClient({ studentId, editable = false }: { studentId: stri
                 </span>
               </button>
               {isOpen && (
-                <div className="px-5 pb-5 pt-1 bg-slate-50/50 dark:bg-slate-800/30">
+                <div className="px-5 pb-5 pt-1 bg-slate-50/50 dark:bg-slate-800/30 max-h-[60vh] overflow-y-auto">
                   <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
                     {sec.fields.map((field) => {
                       if (field.type === "FILE") {
-                        const docs = docsBySlug[field.slug] ?? [];
-                        return (
-                          <div key={field.id} className="sm:col-span-2">
-                            <dt className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">{field.label}</dt>
-                            <dd className="text-slate-900 dark:text-white">
-                              {isSectionEditing(sec.id) && (
-                                <div className="mb-2">
-                                  <input
-                                    type="file"
-                                    accept=".pdf,.doc,.docx,image/*"
-                                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary"
-                                    onChange={async (e) => {
-                                      const file = e.target.files?.[0];
-                                      if (!file) return;
-                                      try {
-                                        await uploadFile(field.slug, file);
-                                        e.target.value = "";
-                                      } catch (err) {
-                                        setError(err instanceof Error ? err.message : "Yükleme başarısız");
-                                      }
-                                    }}
-                                  />
-                                </div>
-                              )}
-                              {docs.length === 0 ? (
-                                <span className="text-slate-400">—</span>
-                              ) : (
-                                <ul className="flex flex-wrap gap-2">
-                                  {docs.map((d) => (
-                                    <li key={d.id} className="flex flex-wrap items-center gap-2">
-                                      <a
-                                        href={`/api/students/${studentId}/documents/${d.id}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 text-primary hover:underline bg-primary/5 dark:bg-primary/10 px-2.5 py-1.5 rounded-lg text-sm"
-                                      >
-                                        <span className="material-icons-outlined text-base">attach_file</span>
-                                        {d.fileName}
-                                      </a>
-                                      <span className="text-xs text-slate-500">v{d.version ?? 1} · {new Date(d.uploadedAt).toLocaleDateString("tr-TR")}</span>
-                                      {editable && (
-                                        <select
-                                          value={d.status ?? "UPLOADED"}
-                                          onChange={async (e) => {
-                                            const newStatus = e.target.value;
-                                            const res = await fetch(`/api/students/${studentId}/documents/${d.id}`, {
-                                              method: "PATCH",
-                                              headers: { "Content-Type": "application/json" },
-                                              body: JSON.stringify({ status: newStatus }),
-                                            });
-                                            if (res.ok) setDocuments((prev) => prev.map((x) => x.id === d.id ? { ...x, status: newStatus } : x));
-                                          }}
-                                          className="text-xs rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-1 px-2"
-                                        >
-                                          <option value="UPLOADED">Yüklendi</option>
-                                          <option value="APPROVED">Onaylandı</option>
-                                          <option value="REVISION_REQUESTED">Revize istendi</option>
-                                        </select>
-                                      )}
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                            </dd>
-                          </div>
-                        );
+                        return null;
                       }
 
                       if (isSectionEditing(sec.id)) {

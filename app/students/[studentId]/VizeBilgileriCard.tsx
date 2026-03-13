@@ -7,10 +7,27 @@ type VisaInfo = {
   visaCity: string | null;
   visaProgramStartDate: string | null;
   visaNotes: string | null;
+  visaConsulate: string | null;
+  visaApplicationDate: string | null;
+  visaAppointmentDate: string | null;
+  visaStartDate: string | null;
+  visaEndDate: string | null;
+  visaDocumentPath: string | null;
 };
 
 export function VizeBilgileriCard({ studentId }: { studentId: string }) {
-  const [info, setInfo] = useState<VisaInfo>({ visaInstitution: null, visaCity: null, visaProgramStartDate: null, visaNotes: null });
+  const [info, setInfo] = useState<VisaInfo>({
+    visaInstitution: null,
+    visaCity: null,
+    visaProgramStartDate: null,
+    visaNotes: null,
+    visaConsulate: null,
+    visaApplicationDate: null,
+    visaAppointmentDate: null,
+    visaStartDate: null,
+    visaEndDate: null,
+    visaDocumentPath: null,
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -23,6 +40,12 @@ export function VizeBilgileriCard({ studentId }: { studentId: string }) {
           visaCity: d.visaCity ?? "",
           visaProgramStartDate: d.visaProgramStartDate?.slice(0, 10) ?? "",
           visaNotes: d.visaNotes ?? "",
+          visaConsulate: d.visaConsulate ?? "",
+          visaApplicationDate: d.visaApplicationDate?.slice(0, 10) ?? "",
+          visaAppointmentDate: d.visaAppointmentDate?.slice(0, 10) ?? "",
+          visaStartDate: d.visaStartDate?.slice(0, 10) ?? "",
+          visaEndDate: d.visaEndDate?.slice(0, 10) ?? "",
+          visaDocumentPath: d.visaDocumentPath ?? null,
         });
       })
       .finally(() => setLoading(false));
@@ -43,6 +66,11 @@ export function VizeBilgileriCard({ studentId }: { studentId: string }) {
         visaCity: info.visaCity || null,
         visaProgramStartDate: info.visaProgramStartDate || null,
         visaNotes: info.visaNotes || null,
+        visaConsulate: info.visaConsulate || null,
+        visaApplicationDate: info.visaApplicationDate || null,
+        visaAppointmentDate: info.visaAppointmentDate || null,
+        visaStartDate: info.visaStartDate || null,
+        visaEndDate: info.visaEndDate || null,
       }),
     });
     setSaving(false);
@@ -97,6 +125,70 @@ export function VizeBilgileriCard({ studentId }: { studentId: string }) {
             rows={3}
           />
         </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Başvurulan konsolosluk</label>
+            <input
+              type="text"
+              value={info.visaConsulate ?? ""}
+              onChange={(e) => setInfo((p) => ({ ...p, visaConsulate: e.target.value }))}
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm py-2.5 px-3"
+              placeholder="Örn. Almanya İstanbul Başkonsolosluğu"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Vize başvuru tarihi</label>
+            <input
+              type="date"
+              value={info.visaApplicationDate ?? ""}
+              onChange={(e) => setInfo((p) => ({ ...p, visaApplicationDate: e.target.value }))}
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm py-2.5 px-3"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Randevu tarihi</label>
+            <input
+              type="date"
+              value={info.visaAppointmentDate ?? ""}
+              onChange={(e) => setInfo((p) => ({ ...p, visaAppointmentDate: e.target.value }))}
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm py-2.5 px-3"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Vize başlangıç tarihi</label>
+            <input
+              type="date"
+              value={info.visaStartDate ?? ""}
+              onChange={(e) => setInfo((p) => ({ ...p, visaStartDate: e.target.value }))}
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm py-2.5 px-3"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Vize bitiş tarihi</label>
+            <input
+              type="date"
+              value={info.visaEndDate ?? ""}
+              onChange={(e) => setInfo((p) => ({ ...p, visaEndDate: e.target.value }))}
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm py-2.5 px-3"
+            />
+          </div>
+        </div>
+        {info.visaDocumentPath && (
+          <div>
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Vize belgesi</label>
+            <a
+              href={`/api/students/${studentId}/vize/doc`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-primary hover:underline flex items-center gap-1"
+            >
+              <span className="material-icons-outlined text-lg">download</span>
+              İndir
+            </a>
+          </div>
+        )}
         <button
           type="submit"
           disabled={saving}

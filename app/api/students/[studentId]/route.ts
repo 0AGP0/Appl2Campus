@@ -3,6 +3,7 @@ import { getServerSession, authOptions } from "@/lib/auth";
 import { canAccessStudent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { createConsultantNotification } from "@/lib/notifications";
+import { isOperationRole } from "@/lib/roles";
 
 export async function GET(
   _req: NextRequest,
@@ -62,6 +63,7 @@ export async function PATCH(
   const body = await req.json();
   const isAdmin = role === "ADMIN";
   const isOwnStudent = role === "STUDENT" && sessionStudentId === studentId;
+  const isConsultantOrOp = role === "CONSULTANT" || isOperationRole(role);
   const validSlugs = await getValidStageSlugs();
   const stageOk = body.stage != null && validSlugs.includes(String(body.stage));
   const data = isAdmin
@@ -73,15 +75,31 @@ export async function PATCH(
         ...(body.assignedConsultantId !== undefined && {
           assignedConsultantId: body.assignedConsultantId === "" || body.assignedConsultantId === null ? null : body.assignedConsultantId,
         }),
+        ...(body.accommodationPackage !== undefined && { accommodationPackage: !!body.accommodationPackage }),
+        ...(body.languageCourseCity !== undefined && { languageCourseCity: body.languageCourseCity === "" ? null : body.languageCourseCity }),
+        ...(body.languageCourseName !== undefined && { languageCourseName: body.languageCourseName === "" ? null : body.languageCourseName }),
+        ...(body.languageCourseStartDate !== undefined && { languageCourseStartDate: body.languageCourseStartDate ? new Date(body.languageCourseStartDate) : null }),
+        ...(body.languageCourseInstitutionId !== undefined && { languageCourseInstitutionId: body.languageCourseInstitutionId === "" ? null : body.languageCourseInstitutionId }),
+        ...(body.languageCoursePostponements !== undefined && { languageCoursePostponements: body.languageCoursePostponements }),
       }
     : isOwnStudent
       ? {
           ...(body.name != null && String(body.name).trim() && { name: String(body.name).trim() }),
           ...(body.studentEmail !== undefined && { studentEmail: body.studentEmail === "" ? null : body.studentEmail }),
         }
-      : stageOk
-        ? { stage: body.stage }
-        : {};
+      : isConsultantOrOp
+        ? {
+            ...(stageOk && { stage: body.stage }),
+            ...(body.accommodationPackage !== undefined && { accommodationPackage: !!body.accommodationPackage }),
+            ...(body.languageCourseCity !== undefined && { languageCourseCity: body.languageCourseCity === "" ? null : body.languageCourseCity }),
+            ...(body.languageCourseName !== undefined && { languageCourseName: body.languageCourseName === "" ? null : body.languageCourseName }),
+            ...(body.languageCourseStartDate !== undefined && { languageCourseStartDate: body.languageCourseStartDate ? new Date(body.languageCourseStartDate) : null }),
+            ...(body.languageCourseInstitutionId !== undefined && { languageCourseInstitutionId: body.languageCourseInstitutionId === "" ? null : body.languageCourseInstitutionId }),
+            ...(body.languageCoursePostponements !== undefined && { languageCoursePostponements: body.languageCoursePostponements }),
+          }
+        : stageOk
+          ? { stage: body.stage }
+          : {};
   if (Object.keys(data).length === 0) return NextResponse.json({ error: "No valid update" }, { status: 400 });
 
   const previous = await prisma.student.findUnique({

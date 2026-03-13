@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { StudentDetailNav } from "./StudentDetailNav";
+import { StudentNotesSidebar } from "./StudentNotesSidebar";
 
 export function StudentLayoutContent({
   studentId,
@@ -36,7 +37,12 @@ export function StudentLayoutContent({
         </span>
       </nav>
       <StudentDetailNav studentId={studentId} />
-      <div className="mt-2 min-h-0 flex-1 flex flex-col overflow-hidden">{children}</div>
+      <div className="mt-2 flex-1 flex gap-4 min-h-0 overflow-hidden">
+        <div className="flex-1 min-w-0 overflow-y-auto">{children}</div>
+        <aside className="w-80 shrink-0 flex flex-col border-l border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/50 overflow-hidden">
+          <StudentNotesSidebar studentId={studentId} />
+        </aside>
+      </div>
     </>
   );
 }
